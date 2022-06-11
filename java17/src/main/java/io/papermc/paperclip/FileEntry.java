@@ -1,8 +1,6 @@
 package io.papermc.paperclip;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -75,16 +73,30 @@ record FileEntry(byte[] hash, String id, String path) {
             if (originalRootDir == null) {
                 // no original jar was provided (we are not running in patcher mode)
                 // This is an invalid situation
-                throw new IllegalStateException(this.path + " not found in our jar, and no original jar provided");
+                throw new IllegalStateException(this.path + "이(가) 이 jar에서 발견되지 않았습니다!");
             }
 
             final Path originalFile = originalRootDir.resolve(filePath);
             if (Files.notExists(originalFile)) {
-                throw new IllegalStateException(this.path + " not found in our jar or in the original jar");
+                if(filePath.matches("https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)")) {
+                    System.out.println("Downloading " + filePath);
+                    Files.createDirectories(outputFile.getParent());
+                    Files.deleteIfExists(outputFile);
+                    try (
+                            ReadableByteChannel readableByteChannel = Channels.newChannel(new URL(filePath).openStream());
+                            FileChannel fileChannel = FileChannel.open(outputFile, CREATE, WRITE, TRUNCATE_EXISTING)
+                    ) {
+                        fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+                    }
+                    return;
+                }
+                throw new IllegalStateException(this.path + "이(가) 이 jar에서 발견되지 않거나, URL이지 않습니다!");
             }
 
             fileStream = Files.newInputStream(originalFile);
         }
+
+        System.out.println("Copying " + outputFile);
 
         Files.createDirectories(outputFile.getParent());
         Files.deleteIfExists(outputFile);
