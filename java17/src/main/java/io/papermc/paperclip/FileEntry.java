@@ -93,10 +93,16 @@ record FileEntry(byte[] hash, String id, String path) {
                 throw new IllegalStateException(this.path + "이(가) 이 jar에서 발견되지 않거나, URL이지 않습니다!");
             }
 
-            fileStream = Files.newInputStream(originalFile);
+            if (!Util.isFileValid(outputFile, this.hash)) {
+                throw new IllegalStateException(outputFile + "에 대한 검증이 실패하였습니다!");
+            }
+
+            urls.put(this.path, outputFile.toUri().toURL());
+
+            return;
         }
 
-        System.out.println("Copying " + outputFile);
+        System.out.println(outputFile + " 복사중...");
 
         Files.createDirectories(outputFile.getParent());
         Files.deleteIfExists(outputFile);
